@@ -1,0 +1,42 @@
+import pandas as pd
+
+#reads 2 csv files products and sales
+
+updated_prices = [] #empty list to save new prices
+prod_df = pd.read_csv('products.csv') 
+sales_df = pd.read_csv('sales.csv')
+
+raw_text = u"\u20B9" # units for price columns
+
+#Merging/joining the 2 tables on sku common column
+df_merged = pd.merge(prod_df,sales_df, on = 'sku', how= "inner")
+
+#Applying Pricing Rules for each product
+
+for i,r in df_merged.iterrows():
+    #Rule 1 – Low Stock, High Demand (Highest Priority)-- Increase the current price by 15%.
+    if r.iloc[4] < 20 and r.iloc[5] > 30:
+        sku = r.iloc[0]
+        old_price = r.iloc[2]
+        new_price = r.iloc[2] + r.iloc[2] * 0.15
+
+    #Rule 2 – Dead Stock (Second Priority) -- Decrease the current price by 30%
+    elif r.iloc[4] > 200 and r.iloc[5] == 0:
+        sku = r.iloc[0]
+        old_price = r.iloc[2]
+        new_price = r.iloc[2] - r.iloc[2] * 0.30
+
+    #Rule 3 – Overstocked Inventory (Third Priority)--Decrease the current price by 10%.  
+    elif r.iloc[4] > 100 and r.iloc[5] < 20:
+        sku = r.iloc[0]
+        old_price = r.iloc[2]
+        new_price = r.iloc[2] - r.iloc[2] * 0.10 
+
+#Rule 4 - Minimum Profit Constraint (Always Applied Last) -- Finalize the price, rounding it to 2 decimal places 
+    if new_price < r.iloc[3] *1.2 :
+        new_price = round(r.iloc[3] *1.2, 2)
+    updated_prices.append([sku, old_price,new_price])
+
+df = pd.DataFrame(updated_prices, columns=["sku", "old_price" + " " + (raw_text), "new_price" + " " + (raw_text)])
+df.to_csv("updated_prices.csv", index=False)
+print(df)
